@@ -95,6 +95,8 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
         />
+              <Analytics />
+
       </body>
     </html>
   );
