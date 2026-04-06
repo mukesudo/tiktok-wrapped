@@ -13,7 +13,7 @@ export const siteConfig = {
     "next.js tiktok project",
     "react tiktok dashboard"
   ],
-  creditName: process.env.NEXT_PUBLIC_SITE_CREDIT_NAME ?? "Built by you",
+  creditName: process.env.NEXT_PUBLIC_SITE_CREDIT_NAME ?? "Built by @mukesudo",
   creditUrl: process.env.NEXT_PUBLIC_SITE_CREDIT_URL ?? "",
   xHandle: process.env.NEXT_PUBLIC_SITE_X_HANDLE ?? "",
   googleSiteVerification: process.env.GOOGLE_SITE_VERIFICATION ?? ""

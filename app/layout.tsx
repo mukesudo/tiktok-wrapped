@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { getSiteUrl, siteConfig } from "../lib/site";
+import { Analytics } from "@vercel/analytics/next"
 
 const siteUrl = getSiteUrl();
 const structuredData = {
