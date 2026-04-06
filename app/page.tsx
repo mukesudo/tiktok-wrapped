@@ -1,11 +1,11 @@
 "use client";
 
-import Image from "next/image";
 import { startTransition, useEffect, useState } from "react";
 import UploadCard from "../components/UploadCard";
 import WrappedSection from "../components/WrappedSection";
 import StatCard from "../components/StatCard";
 import ReplayCard from "../components/ReplayCard";
+import WatchDna from "../components/WatchDna";
 import BrandMark from "../components/BrandMark";
 import { parseTikTokExport, type WrappedData } from "../lib/tiktok";
 import { siteConfig } from "../lib/site";
@@ -22,6 +22,25 @@ function formatCompact(value: number) {
   }).format(value);
 }
 
+function formatDateLabel(value: string | null | undefined) {
+  if (!value) return "N/A";
+
+  const parsed = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return value;
+
+  return parsed.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric"
+  });
+}
+
+function formatDateRange(start: string | null | undefined, end: string | null | undefined) {
+  if (!start && !end) return "No dated records found";
+  if (start && end) return `${formatDateLabel(start)} - ${formatDateLabel(end)}`;
+  return formatDateLabel(start ?? end);
+}
+
 export default function Home() {
   const [fileName, setFileName] = useState<string | null>(null);
   const [wrapped, setWrapped] = useState<WrappedData | null>(null);
@@ -31,6 +50,7 @@ export default function Home() {
   const [shareStatus, setShareStatus] = useState<"idle" | "shared" | "copied" | "error">(
     "idle"
   );
+  const [avatarFailed, setAvatarFailed] = useState(false);
 
   const slideLinks = wrapped
     ? [
@@ -41,6 +61,7 @@ export default function Home() {
         { id: "timeline", label: "Timeline" },
         { id: "curiosity", label: "Curiosity" },
         { id: "replays", label: "Replays" },
+        { id: "dna", label: "DNA" },
         { id: "social", label: "Social" },
         { id: "vibe", label: "Vibe" }
       ]
@@ -93,6 +114,10 @@ export default function Home() {
 
     return () => window.clearTimeout(handle);
   }, [shareStatus]);
+
+  useEffect(() => {
+    setAvatarFailed(false);
+  }, [wrapped?.profile.avatarUrl]);
 
   function getShareUrl() {
     if (typeof window === "undefined") return "";
@@ -200,7 +225,7 @@ export default function Home() {
                     aria-label={item.label}
                     className={`h-3 w-3 rounded-full transition ${
                       activeSlide === item.id
-                        ? "bg-[#1ed760] shadow-[0_0_18px_rgba(30,215,96,0.8)]"
+                        ? "bg-[#fe2c55] shadow-[0_0_18px_rgba(254,44,85,0.82)]"
                         : "bg-white/20 hover:bg-white/50"
                     }`}
                   />
@@ -245,12 +270,15 @@ export default function Home() {
                 <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80">
                   Peak time {wrapped.peakHourLabel}
                 </div>
+                <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80">
+                  Export window {formatDateRange(wrapped.coverage.start, wrapped.coverage.end)}
+                </div>
               </div>
             )}
           </div>
 
           <div className="relative">
-            <div className="absolute -right-8 -top-6 hidden h-28 w-28 rounded-full border border-white/10 bg-[#1ed760]/15 blur-2xl md:block" />
+            <div className="absolute -right-8 -top-6 hidden h-28 w-28 rounded-full border border-white/10 bg-[#25f4ee]/15 blur-2xl md:block" />
             <UploadCard
               onFile={handleFile}
               fileName={fileName}
@@ -262,6 +290,13 @@ export default function Home() {
               is local first, with replay thumbnails pulled from public TikTok
               embed metadata.
             </p>
+            {wrapped && (
+              <p className="mt-2 px-1 text-sm text-white/45">
+                This report only reflects dated activity found between{" "}
+                {formatDateRange(wrapped.coverage.start, wrapped.coverage.end)} in the
+                uploaded export, not necessarily your full lifetime TikTok history.
+              </p>
+            )}
           </div>
         </div>
 
@@ -273,23 +308,23 @@ export default function Home() {
 
       {wrapped && (
         <>
-          <WrappedSection id="overview" theme="green">
+          <WrappedSection id="overview" theme="tiktok">
             <div className="grid flex-1 gap-8 lg:grid-cols-[320px_minmax(0,1fr)] lg:items-center">
               <div className="relative">
-                <div className="absolute inset-0 rounded-[2rem] bg-[#1ed760]/15 blur-3xl" />
+                <div className="absolute inset-0 rounded-[2rem] bg-[linear-gradient(160deg,rgba(254,44,85,0.16),rgba(37,244,238,0.12))] blur-3xl" />
                 <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 p-6">
                   <div className="relative mx-auto aspect-square max-w-[220px] overflow-hidden rounded-[1.75rem] border border-white/10 bg-black/20">
-                    {wrapped.profile.avatarUrl ? (
-                      <Image
+                    {wrapped.profile.avatarUrl && !avatarFailed ? (
+                      <img
                         src={wrapped.profile.avatarUrl}
                         alt={wrapped.profile.username}
-                        fill
-                        className="object-cover"
-                        sizes="220px"
-                        unoptimized
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                        referrerPolicy="no-referrer"
+                        onError={() => setAvatarFailed(true)}
                       />
                     ) : (
-                      <div className="flex h-full items-center justify-center bg-[linear-gradient(160deg,_rgba(30,215,96,0.85),_rgba(14,165,233,0.4),_rgba(16,16,16,1))] text-5xl font-semibold uppercase text-white">
+                      <div className="flex h-full items-center justify-center bg-[linear-gradient(160deg,_rgba(254,44,85,0.82),_rgba(37,244,238,0.34),_rgba(16,16,16,1))] text-5xl font-semibold uppercase text-white">
                         {wrapped.profile.username.slice(0, 2)}
                       </div>
                     )}
@@ -455,7 +490,7 @@ export default function Home() {
                         <div key={hour} className="flex flex-col items-center gap-2">
                           <div className="flex h-28 w-4 items-end rounded-full bg-white/6">
                             <div
-                              className="w-4 rounded-full bg-[linear-gradient(180deg,#1ed760,#22d3ee)]"
+                              className="w-4 rounded-full bg-[linear-gradient(180deg,#fe2c55,#25f4ee)]"
                               style={{
                                 height: `${Math.max(8, Math.round((count / maxHour) * 100))}%`
                               }}
@@ -513,17 +548,52 @@ export default function Home() {
           </WrappedSection>
 
           <WrappedSection id="timeline" theme="pink">
-            <div>
-              <p className="text-xs uppercase tracking-[0.35em] text-white/55">
-                Timeline
-              </p>
-              <h2 className="mt-4 text-4xl font-semibold text-white sm:text-5xl">
-                Your activity curve across the year.
-              </h2>
-              <p className="mt-3 max-w-2xl text-base leading-7 text-white/65">
-                Watch volume, likes, searches, shares, and comments plotted month
-                by month from your export dates.
-              </p>
+            <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.35em] text-white/55">
+                  Timeline
+                </p>
+                <h2 className="mt-4 text-4xl font-semibold text-white sm:text-5xl">
+                  Your activity curve across the year.
+                </h2>
+                <p className="mt-3 max-w-2xl text-base leading-7 text-white/65">
+                  Watch volume, likes, searches, shares, and comments plotted month
+                  by month from the dates that exist in your export.
+                </p>
+              </div>
+
+              <div className="w-full max-w-xl rounded-[2rem] border border-white/10 bg-white/5 p-6">
+                <p className="text-xs uppercase tracking-[0.3em] text-white/50">
+                  Export window
+                </p>
+                <p className="mt-3 text-2xl font-semibold text-white">
+                  {formatDateRange(wrapped.coverage.start, wrapped.coverage.end)}
+                </p>
+                <p className="mt-3 text-sm leading-6 text-white/60">
+                  This app only analyzes the dated records present in the uploaded
+                  `user_data_tiktok.json`. That window may be a partial snapshot,
+                  not your full account history.
+                </p>
+
+                <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                  {wrapped.coverage.sections.map((section) => (
+                    <div
+                      key={section.label}
+                      className="rounded-[1.4rem] border border-white/10 bg-black/20 px-4 py-4"
+                    >
+                      <p className="text-xs uppercase tracking-[0.22em] text-white/45">
+                        {section.label}
+                      </p>
+                      <p className="mt-2 text-sm font-medium text-white/85">
+                        {formatDateRange(section.start, section.end)}
+                      </p>
+                      <p className="mt-1 text-xs text-white/50">
+                        {formatCompact(section.count)} records
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
 
             <div className="mt-10 flex-1 overflow-x-auto pb-2">
@@ -557,7 +627,7 @@ export default function Home() {
                           {
                             label: "Search",
                             value: month.searches,
-                            color: "bg-[#1ed760]"
+                            color: "bg-[#25f4ee]"
                           },
                           { label: "Share", value: month.shares, color: "bg-white/70" }
                         ].map((item) => (
@@ -675,7 +745,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="mt-8 flex-1 space-y-4 overflow-y-auto pr-1">
+            <div className="mt-8 min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
               {wrapped.topWatched.length > 0 ? (
                 wrapped.topWatched.map((video, index) => (
                   <ReplayCard key={video.link} index={index + 1} video={video} />
@@ -688,13 +758,23 @@ export default function Home() {
             </div>
           </WrappedSection>
 
-          <WrappedSection id="social" theme="green">
+          <WrappedSection id="dna" theme="tiktok">
+            <WatchDna
+              topWatched={wrapped.topWatched}
+              searchThemes={wrapped.searchThemes}
+              topSearches={wrapped.topSearches}
+              hashtags={wrapped.hashtags}
+              favoriteSounds={wrapped.favoriteSounds}
+            />
+          </WrappedSection>
+
+          <WrappedSection id="social" theme="tiktok">
             <div>
               <p className="text-xs uppercase tracking-[0.35em] text-white/55">
                 Social
               </p>
               <h2 className="mt-4 text-4xl font-semibold text-white sm:text-5xl">
-                How you share and save the feed.
+                How you share, save, and message on TikTok.
               </h2>
             </div>
 
@@ -768,27 +848,80 @@ export default function Home() {
 
               <div className="rounded-[2rem] border border-white/10 bg-white/5 p-6">
                 <p className="text-xs uppercase tracking-[0.3em] text-white/55">
-                  Network posture
+                  Connections
                 </p>
-                <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
-                  <StatCard
-                    label="Following"
-                    value={formatNumber(wrapped.totals.following)}
-                    accent="cyan"
-                  />
-                  <StatCard
-                    label="Followers"
-                    value={formatNumber(wrapped.totals.followers)}
-                  />
-                  <StatCard
-                    label="Favorite effects"
-                    value={formatNumber(wrapped.totals.favoriteEffects)}
-                    accent="cyan"
-                  />
-                  <StatCard
-                    label="Saved hashtags"
-                    value={formatNumber(wrapped.totals.hashtags)}
-                  />
+                <div className="mt-5">
+                  <p className="text-sm text-white/45">Favorite people to chat</p>
+                  <div className="mt-3 space-y-3">
+                    {wrapped.topChatContacts.length > 0 ? (
+                      wrapped.topChatContacts.map((chat, index) => (
+                        <div
+                          key={chat.name}
+                          className="rounded-[1.25rem] border border-white/10 bg-black/20 px-4 py-4"
+                        >
+                          <div className="flex items-center justify-between gap-4">
+                            <div className="min-w-0">
+                              <p className="text-xs uppercase tracking-[0.22em] text-white/40">
+                                #{index + 1}
+                              </p>
+                              <p className="mt-1 truncate text-sm font-medium text-white/88">
+                                {chat.name}
+                              </p>
+                            </div>
+                            <span className="rounded-full bg-white/10 px-3 py-1 text-xs uppercase tracking-[0.18em] text-cyan-300">
+                              {chat.messages} msgs
+                            </span>
+                          </div>
+                          <p className="mt-2 text-xs text-white/52">
+                            Sent {chat.sent} · Received {chat.received}
+                            {chat.lastDate ? ` · Last ${formatDateLabel(chat.lastDate)}` : ""}
+                          </p>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-white/55">No direct message threads found.</p>
+                    )}
+                  </div>
+                  {wrapped.topChatContacts.length > 0 && wrapped.topChatContacts.length < 3 ? (
+                    <p className="mt-3 text-xs text-white/45">
+                      Only {wrapped.topChatContacts.length} chat thread
+                      {wrapped.topChatContacts.length === 1 ? "" : "s"} appeared in this
+                      export.
+                    </p>
+                  ) : null}
+                </div>
+
+                <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                  {[
+                    {
+                      label: "Following",
+                      value: formatNumber(wrapped.totals.following)
+                    },
+                    {
+                      label: "Followers",
+                      value: formatNumber(wrapped.totals.followers)
+                    },
+                    {
+                      label: "Favorite effects",
+                      value: formatNumber(wrapped.totals.favoriteEffects)
+                    },
+                    {
+                      label: "Saved hashtags",
+                      value: formatNumber(wrapped.totals.hashtags)
+                    }
+                  ].map((item, index) => (
+                    <div
+                      key={item.label}
+                      className="rounded-[1.25rem] border border-white/10 bg-black/20 px-4 py-4"
+                    >
+                      <p className="text-xs uppercase tracking-[0.22em] text-white/42">
+                        {item.label}
+                      </p>
+                      <p className={`mt-2 text-xl font-semibold ${index % 2 === 0 ? "text-cyan-300" : "text-white"}`}>
+                        {item.value}
+                      </p>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -850,7 +983,7 @@ export default function Home() {
                     <button
                       type="button"
                       onClick={handleShareSite}
-                      className="rounded-full bg-[#1ed760] px-4 py-2 text-sm font-medium text-black transition duration-200 hover:scale-[1.02] hover:bg-[#3ae57d]"
+                      className="rounded-full bg-[#fe2c55] px-4 py-2 text-sm font-medium text-white transition duration-200 hover:scale-[1.02] hover:bg-[#ff4d72]"
                     >
                       Share this site
                     </button>

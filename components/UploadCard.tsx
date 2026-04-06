@@ -48,7 +48,7 @@ export default function UploadCard({
       </p>
       <button
         type="button"
-        className="mt-5 rounded-full bg-[#1ed760] px-6 py-2 text-sm font-semibold text-black transition hover:bg-[#3be477] disabled:cursor-not-allowed disabled:opacity-70"
+        className="mt-5 rounded-full bg-[#fe2c55] px-6 py-2 text-sm font-semibold text-white transition hover:bg-[#ff4d72] disabled:cursor-not-allowed disabled:opacity-70"
         disabled={loading}
       >
         {loading ? "Analyzing export..." : "Upload JSON"}

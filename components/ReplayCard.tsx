@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useState } from "react";
 import clsx from "clsx";
 import type { ReplayVideo } from "../lib/tiktok";
@@ -25,9 +24,16 @@ export default function ReplayCard({
 }: ReplayCardProps) {
   const [preview, setPreview] = useState<ReplayPreview | null>(null);
   const [loading, setLoading] = useState(true);
+  const [thumbnailFailed, setThumbnailFailed] = useState(false);
 
   useEffect(() => {
+    setThumbnailFailed(false);
+  }, [video.link]);
+
+  useEffect(() => {
+    let isActive = true;
     const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 5000);
 
     async function loadPreview() {
       try {
@@ -42,13 +48,15 @@ export default function ReplayCard({
         }
 
         const data = (await response.json()) as ReplayPreview;
-        setPreview(data);
+        if (isActive) {
+          setPreview(data);
+        }
       } catch {
-        if (!controller.signal.aborted) {
+        if (isActive) {
           setPreview(null);
         }
       } finally {
-        if (!controller.signal.aborted) {
+        if (isActive) {
           setLoading(false);
         }
       }
@@ -56,7 +64,11 @@ export default function ReplayCard({
 
     void loadPreview();
 
-    return () => controller.abort();
+    return () => {
+      isActive = false;
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
   }, [video.link]);
 
   return (
@@ -70,14 +82,14 @@ export default function ReplayCard({
         <div className="relative overflow-hidden rounded-[1.5rem] border border-white/10 bg-white/5">
           <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-black/40" />
           <div className="relative aspect-[9/16]">
-            {preview?.thumbnailUrl ? (
-              <Image
+            {preview?.thumbnailUrl && !thumbnailFailed ? (
+              <img
                 src={preview.thumbnailUrl}
                 alt={preview.title ?? `Replay ${index}`}
-                fill
-                className="object-cover transition duration-500 group-hover:scale-[1.03]"
-                sizes="(max-width: 768px) 100vw, 220px"
-                unoptimized
+                className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+                loading="lazy"
+                referrerPolicy="no-referrer"
+                onError={() => setThumbnailFailed(true)}
               />
             ) : (
               <div className="flex h-full items-end bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.18),_transparent_46%),linear-gradient(160deg,_rgba(236,72,153,0.85),_rgba(14,165,233,0.35)_58%,_rgba(10,10,10,1))] p-5">

@@ -7,7 +7,7 @@ import clsx from "clsx";
 type WrappedSectionProps = {
   id?: string;
   className?: string;
-  theme?: "pink" | "cyan" | "green" | "sunset";
+  theme?: "pink" | "cyan" | "tiktok" | "sunset";
   children: React.ReactNode;
 };
 
@@ -16,8 +16,8 @@ const THEME_CLASSES = {
     "bg-[radial-gradient(circle_at_top,_rgba(236,72,153,0.2),_transparent_32%),radial-gradient(circle_at_bottom_right,_rgba(34,211,238,0.16),_transparent_30%),linear-gradient(160deg,_rgba(14,14,14,0.98),_rgba(20,20,20,0.94))]",
   cyan:
     "bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.2),_transparent_32%),radial-gradient(circle_at_bottom_right,_rgba(59,130,246,0.18),_transparent_32%),linear-gradient(160deg,_rgba(8,12,18,0.98),_rgba(14,14,14,0.95))]",
-  green:
-    "bg-[radial-gradient(circle_at_top,_rgba(30,215,96,0.24),_transparent_30%),radial-gradient(circle_at_bottom_left,_rgba(34,211,238,0.15),_transparent_28%),linear-gradient(160deg,_rgba(9,12,10,0.98),_rgba(16,16,16,0.94))]",
+  tiktok:
+    "bg-[radial-gradient(circle_at_top,_rgba(254,44,85,0.22),_transparent_30%),radial-gradient(circle_at_bottom_left,_rgba(37,244,238,0.16),_transparent_28%),radial-gradient(circle_at_right,_rgba(255,255,255,0.06),_transparent_24%),linear-gradient(160deg,_rgba(12,10,14,0.98),_rgba(16,16,16,0.94))]",
   sunset:
     "bg-[radial-gradient(circle_at_top_left,_rgba(250,204,21,0.18),_transparent_24%),radial-gradient(circle_at_top_right,_rgba(236,72,153,0.2),_transparent_28%),radial-gradient(circle_at_bottom,_rgba(34,211,238,0.12),_transparent_30%),linear-gradient(160deg,_rgba(18,18,18,0.98),_rgba(12,12,12,0.96))]"
 };
@@ -36,7 +36,7 @@ function useInViewOnce(options?: IntersectionObserverInit) {
           observer.disconnect();
         }
       },
-      { threshold: 0.35, ...options }
+      { threshold: 0.12, ...options }
     );
 
     observer.observe(ref.current);
@@ -52,7 +52,8 @@ export default function WrappedSection({
   theme = "pink",
   children
 }: WrappedSectionProps) {
-  const { ref, inView } = useInViewOnce({ rootMargin: "0px 0px -12% 0px" });
+  const { ref, inView } = useInViewOnce({ rootMargin: "0px 0px -6% 0px" });
+  const isVisible = inView || id === "hero";
 
   return (
     <section
@@ -67,12 +68,16 @@ export default function WrappedSection({
           THEME_CLASSES[theme],
           className
         )}
-        initial={{ opacity: 0, y: 48, scale: 0.98 }}
-        animate={inView ? { opacity: 1, y: 0, scale: 1 } : undefined}
+        initial={false}
+        animate={
+          isVisible
+            ? { opacity: 1, y: 0, scale: 1 }
+            : { opacity: 0.92, y: 28, scale: 0.992 }
+        }
         transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
       >
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),transparent_28%,transparent_72%,rgba(255,255,255,0.04))]" />
-        <div className="relative z-10 flex h-full flex-1 flex-col">{children}</div>
+        <div className="relative z-10 flex h-full min-h-0 flex-1 flex-col">{children}</div>
       </motion.div>
     </section>
   );

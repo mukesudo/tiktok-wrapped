@@ -166,7 +166,7 @@ export default function OpenGraphImage() {
                     height: 10,
                     width: 10,
                     borderRadius: 999,
-                    background: index === 1 ? "#22d3ee" : index === 2 ? "#1ed760" : "#ff3f8f"
+                    background: index === 1 ? "#22d3ee" : index === 2 ? "#ffffff" : "#ff3f8f"
                   }}
                 />
                 {label}

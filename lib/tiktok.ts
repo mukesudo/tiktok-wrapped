@@ -24,6 +24,28 @@ export type DayBucket = {
   value: number;
 };
 
+export type ChatContact = {
+  name: string;
+  messages: number;
+  sent: number;
+  received: number;
+  lastDate: string | null;
+};
+
+export type CoverageSection = {
+  label: string;
+  start: string | null;
+  end: string | null;
+  count: number;
+};
+
+export type ExportCoverage = {
+  start: string | null;
+  end: string | null;
+  days: number;
+  sections: CoverageSection[];
+};
+
 export type SessionStats = {
   count: number;
   averageMinutes: number;
@@ -69,9 +91,11 @@ export type WrappedData = {
   searchThemes: RankedItem[];
   shareMethods: RankedItem[];
   topWatched: ReplayVideo[];
+  topChatContacts: ChatContact[];
   hashtags: string[];
   favoriteSounds: string[];
   favoriteEffects: string[];
+  coverage: ExportCoverage;
   vibe: string;
 };
 
@@ -190,6 +214,12 @@ function formatMonthKey(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 }
 
+function formatDateOnly(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
+    date.getDate()
+  ).padStart(2, "0")}`;
+}
+
 function formatMonthLabel(key: string): string {
   const [year, month] = key.split("-").map(Number);
   if (!year || !month) return key;
@@ -221,6 +251,32 @@ function uniqueStrings(values: Array<string | undefined>) {
   });
 
   return unique;
+}
+
+function buildCoverage(dates: Date[]) {
+  if (!dates.length) {
+    return {
+      start: null,
+      end: null,
+      days: 0
+    };
+  }
+
+  const sorted = [...dates].sort((a, b) => a.getTime() - b.getTime());
+  const start = sorted[0];
+  const end = sorted[sorted.length - 1];
+  const days =
+    Math.max(1, Math.round((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)) + 1);
+
+  return {
+    start: formatDateOnly(start),
+    end: formatDateOnly(end),
+    days
+  };
+}
+
+function normalizeChatName(rawName: string) {
+  return rawName.replace(/^Chat History with\s+/i, "").replace(/:\s*$/, "").trim();
 }
 
 function rankItems(
@@ -451,6 +507,8 @@ export function parseTikTokExport(data: unknown): WrappedData {
     "Favorite Effects",
     "FavoriteEffectsList"
   ]);
+  const directMessages = getNested(data, ["Direct Message", "Direct Messages", "ChatHistory"]);
+  const chatHistory = isRecord(directMessages) ? directMessages : {};
 
   const monthMap = new Map<string, MonthBucket>();
   const dayMap = new Map<string, number>();
@@ -458,6 +516,12 @@ export function parseTikTokExport(data: unknown): WrappedData {
   const hourCounts = Array.from({ length: 24 }, () => 0);
   const watchCounts = new Map<string, number>();
   const watchTimestamps: number[] = [];
+  const watchDates: Date[] = [];
+  const likeDates: Date[] = [];
+  const searchDates: Date[] = [];
+  const shareDates: Date[] = [];
+  const commentDates: Date[] = [];
+  const messageDates: Date[] = [];
 
   const bumpMonth = (
     date: Date,
@@ -483,6 +547,7 @@ export function parseTikTokExport(data: unknown): WrappedData {
     const link = pickString(item, ["Link", "link"]);
 
     if (date) {
+      watchDates.push(date);
       const dayKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
         2,
         "0"
@@ -502,23 +567,78 @@ export function parseTikTokExport(data: unknown): WrappedData {
 
   likeList.forEach((item) => {
     const date = parseDate(pickString(item, ["Date", "date"]));
-    if (date) bumpMonth(date, "likes");
+    if (date) {
+      likeDates.push(date);
+      bumpMonth(date, "likes");
+    }
   });
 
   searches.forEach((item) => {
     const date = parseDate(pickString(item, ["Date", "date"]));
-    if (date) bumpMonth(date, "searches");
+    if (date) {
+      searchDates.push(date);
+      bumpMonth(date, "searches");
+    }
   });
 
   shareHistory.forEach((item) => {
     const date = parseDate(pickString(item, ["Date", "date"]));
-    if (date) bumpMonth(date, "shares");
+    if (date) {
+      shareDates.push(date);
+      bumpMonth(date, "shares");
+    }
   });
 
   comments.forEach((item) => {
     const date = parseDate(pickString(item, ["Date", "date"]));
-    if (date) bumpMonth(date, "comments");
+    if (date) {
+      commentDates.push(date);
+      bumpMonth(date, "comments");
+    }
   });
+
+  const allChatContacts = Object.entries(chatHistory)
+    .map(([rawName, entry]) => {
+      const messages = asArray<ActivityEntry>(entry);
+      let sent = 0;
+      let received = 0;
+      let lastDate: Date | null = null;
+
+      messages.forEach((message) => {
+        const from = pickString(message, ["From", "from"]);
+        const date = parseDate(pickString(message, ["Date", "date"]));
+
+        if (from === profile.username) {
+          sent += 1;
+        } else {
+          received += 1;
+        }
+
+        if (date) {
+          messageDates.push(date);
+          if (!lastDate || date.getTime() > lastDate.getTime()) {
+            lastDate = date;
+          }
+        }
+      });
+
+      return {
+        name: normalizeChatName(rawName),
+        messages: messages.length,
+        sent,
+        received,
+        lastDate: lastDate ? formatDateOnly(lastDate) : null
+      };
+    })
+    .filter((chat) => chat.messages > 0)
+    .sort((a, b) => {
+      if (b.messages !== a.messages) return b.messages - a.messages;
+      if (a.lastDate && b.lastDate) return b.lastDate.localeCompare(a.lastDate);
+      if (b.lastDate) return 1;
+      if (a.lastDate) return -1;
+      return a.name.localeCompare(b.name);
+    });
+  const topChatContacts = allChatContacts.slice(0, 3);
 
   const uniqueVideos = watchCounts.size;
   const repeatedViews = Array.from(watchCounts.values()).reduce((sum, count) => {
@@ -562,6 +682,35 @@ export function parseTikTokExport(data: unknown): WrappedData {
   const favoriteEffectsLinks = uniqueStrings(
     favoriteEffects.map((item) => pickString(item, ["EffectLink"]))
   );
+  const coverageSections = [
+    { label: "Watch history", dates: watchDates, count: watchList.length },
+    { label: "Likes", dates: likeDates, count: likeList.length },
+    { label: "Searches", dates: searchDates, count: searches.length },
+    { label: "Shares", dates: shareDates, count: shareHistory.length },
+    { label: "Comments", dates: commentDates, count: comments.length },
+    {
+      label: "Direct messages",
+      dates: messageDates,
+      count: allChatContacts.reduce((sum, chat) => sum + chat.messages, 0)
+    }
+  ]
+    .map((section) => ({
+      label: section.label,
+      count: section.count,
+      ...buildCoverage(section.dates)
+    }))
+    .filter((section) => section.count > 0);
+  const coverage = {
+    ...buildCoverage([
+      ...watchDates,
+      ...likeDates,
+      ...searchDates,
+      ...shareDates,
+      ...commentDates,
+      ...messageDates
+    ]),
+    sections: coverageSections
+  };
 
   const peakHour = hourCounts.reduce(
     (best, count, hour) => (count > hourCounts[best] ? hour : best),
@@ -648,9 +797,11 @@ export function parseTikTokExport(data: unknown): WrappedData {
     searchThemes,
     shareMethods,
     topWatched,
+    topChatContacts,
     hashtags,
     favoriteSounds: favoriteSoundsLinks,
     favoriteEffects: favoriteEffectsLinks,
+    coverage,
     vibe
   };
 }

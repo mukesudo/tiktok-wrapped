@@ -13,7 +13,7 @@
     <img alt="Tailwind CSS" src="https://img.shields.io/badge/Tailwind-3.4-06b6d4?style=for-the-badge&logo=tailwindcss&logoColor=white" />
   </a>
   <img alt="Local First" src="https://img.shields.io/badge/Local--first-Analytics-111827?style=for-the-badge&labelColor=111827&color=ec4899" />
-  <img alt="Share Ready" src="https://img.shields.io/badge/Share-Ready-111827?style=for-the-badge&labelColor=111827&color=22c55e" />
+  <img alt="Share Ready" src="https://img.shields.io/badge/Share-Ready-111827?style=for-the-badge&labelColor=111827&color=fe2c55" />
 </p>
 
 <h1 align="center">TikTok Wrapped</h1>
