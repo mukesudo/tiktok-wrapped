@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./docs/assets/repo-banner.svg" alt="TikTok Wrapped repository banner" width="100%" />
+  <img src="./docs/assets/repo_banner.svg" alt="TikTok Wrapped repository banner" width="100%" />
 </p>
 
 <p align="center">
